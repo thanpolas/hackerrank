@@ -18,7 +18,7 @@ ISLAND_TREASHOLD = 2
 TIME_THROTTLE = 15
 
 # Generations performed by HackerRank
-HR_GENS = 500
+HR_GENS = 100
 
 PATTERNS = {
     # Popular GOL Patterns
@@ -168,6 +168,7 @@ class Player():
             # make our prospect move
             game_sim.put_cell(pos, self.player)
 
+
             for i in xrange(HR_GENS):
                 game_sim.generate()
                 if game_sim.game_ended():
@@ -176,7 +177,10 @@ class Player():
             game_score = (pos, i, game_sim.get_winner(), game_sim.get_count(W), game_sim.get_count(B))
             pos_score.append(game_score)
             elapsed = time() - start_time
-            #print "Time: %f Iters: %d player: %s winner: %s" % (elapsed, i, self.player, game_score[2])
+            #print "Time: %f Iters: %d player: %s " % (elapsed, i, self.player), game_score, game_sim.game_ended()
+
+            #print game_sim.count_history
+
             # stop sims if we find a satisfactory win case
             if game_score[2] == self.player and i < (HR_GENS - 10):
                 return pos_score
@@ -371,7 +375,7 @@ class Player():
 
 
 class GolRules():
-    def __init__(self, bounds=BOUNDS, board=None):
+    def __init__(self, board=None, bounds=BOUNDS):
         # bounds is a 2 value tuple, rows / cols
         self.bounds = bounds
         # board is an array of arrays representing the board
@@ -385,6 +389,13 @@ class GolRules():
             'b': [],
             '-': []
         }
+
+        # will contain a history of cells count.
+        # Items will be tuples: (W,B)
+        self.count_history = []
+
+        self.generations = 0
+
     def _generate_board(self):
         board = []
         for i in xrange(self.bounds[0]):
@@ -397,9 +408,10 @@ class GolRules():
     def get_board(self):
         return copy.deepcopy(self.board)
 
-    def get_board_str(self):
+    def get_board_str(self, board=None):
+        board = board if board is not None else self.board
         board_str = ''
-        for row in self.board:
+        for row in board:
             for item in row:
                 board_str += item
             board_str += "\n"
@@ -414,6 +426,7 @@ class GolRules():
         """generate 1 step and returns the new board"""
 
         next_board = self._generate_board()
+
         board_items = {
             'w': [],
             'b': [],
@@ -427,17 +440,30 @@ class GolRules():
 
         self.board = next_board
         self.board_items = board_items
+        self.count_history.append((len(self.board_items[W]), len(self.board_items[B])))
+        self.generations += 1
+
         return self.board
 
     def game_ended(self):
-        return not len(self.board_items[W]) or not len(self.board_items[B])
+        w_count = len(self.board_items[W])
+        b_count = len(self.board_items[B])
+        if not w_count or not b_count:
+            return True
+        # Check if population has stabilized
+        if self.generations > 10:
+            last_run = self.count_history[self.generations -2]
+            if last_run[0] == w_count and last_run[1] == b_count:
+                return True
+
+        return False
 
     def get_winner(self):
         """returns W, B or DRAW consts"""
-        w_len = len(self.board_items[W])
-        b_len = len(self.board_items[B])
-        if w_len == b_len: return DRAW
-        return W if w_len > b_len else B
+        w_count = len(self.board_items[W])
+        b_count = len(self.board_items[B])
+        if w_count == b_count: return DRAW
+        return W if w_count > b_count else B
 
     def get_count(self, item):
         return len(self.board_items[item])
@@ -445,26 +471,26 @@ class GolRules():
     def _next_state(self, pos, item):
         """Determine the state of the next step for given pos"""
         neighborhood = {
-            'w': [],
-            'b': [],
-            '-': [],
-            'out_of_bounds': []
+            'w': 0,
+            'b': 0,
+            '-': 0,
+            'out_of_bounds': 0
         }
 
         # -1 -1    -1 0    -1 +1
         #  0 -1     ---     0 +1
         # +1 -1    +1 0    +1 +1
         #
-        neighborhood[self.get_item(pos, -1, -1)].append(pos)
-        neighborhood[self.get_item(pos, -1)].append(pos)
-        neighborhood[self.get_item(pos, -1, 1)].append(pos)
-        neighborhood[self.get_item(pos, 0, -1)].append(pos)
-        neighborhood[self.get_item(pos, 0, 1)].append(pos)
-        neighborhood[self.get_item(pos, 1, -1)].append(pos)
-        neighborhood[self.get_item(pos, 1)].append(pos)
-        neighborhood[self.get_item(pos, 1, 1)].append(pos)
+        neighborhood[self.get_item(pos, -1, -1)] += 1
+        neighborhood[self.get_item(pos, -1)] += 1
+        neighborhood[self.get_item(pos, -1, 1)] += 1
+        neighborhood[self.get_item(pos, 0, -1)] += 1
+        neighborhood[self.get_item(pos, 0, 1)] += 1
+        neighborhood[self.get_item(pos, 1, -1)] += 1
+        neighborhood[self.get_item(pos, 1)] += 1
+        neighborhood[self.get_item(pos, 1, 1)] += 1
 
-        total_near_items = len(neighborhood[W]) + len(neighborhood[B])
+        total_near_items = neighborhood[W] + neighborhood[B]
 
         # certain death rule
         if total_near_items > 3 or total_near_items < 2:
@@ -477,7 +503,7 @@ class GolRules():
             return _
 
         # Cell becomes alive
-        return W if len(neighborhood[W]) > len(neighborhood[B]) else B
+        return W if neighborhood[W] > neighborhood[B] else B
 
     def next(self):
         for rowCount, row in enumerate(self.board):
@@ -487,7 +513,7 @@ class GolRules():
     def get_item(self, pos, offset_row=None, offset_col=None):
         out = 'out_of_bounds'
         row = pos[0] if offset_row is None else pos[0] + offset_row
-        col = pos[0] if offset_col is None else pos[0] + offset_col
+        col = pos[1] if offset_col is None else pos[1] + offset_col
 
         # Check for out of bounds
         if row < 0 or row > self.bounds[0]: return out

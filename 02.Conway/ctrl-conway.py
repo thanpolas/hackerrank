@@ -1,9 +1,10 @@
 import conway
+import time
 
 game = conway.GolRules()
 
 def run():
-    for i in xrange(8):
+    for i in xrange(40):
         print 'Round:', i
         player_one = conway.Player('w', game.get_board())
         play = player_one.get_next_move()
@@ -50,4 +51,43 @@ run()
 
 # win_cases.sort(key=lambda tup:(tup[1], tup[3]*-1))
 # print win_cases
+
+mock = []
+
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----w-----------------------')
+mock.append('-----bbb---------------------')
+mock.append('----b--b---------------------')
+mock.append('---b-------------------------')
+mock.append('--b--------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('----------------www----------')
+mock.append('---------------w--w----------')
+mock.append('--------------w--------------')
+mock.append('-------------w---------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+
+
+# game = conway.GolRules(mock)
+
+# player_one = conway.Player('b', game.get_board())
+# play = player_one.get_next_move()
+# print 'Player b play:', play
 
