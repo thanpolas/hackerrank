@@ -15,7 +15,7 @@ BOUNDS = (29, 29) #row, col
 ISLAND_TREASHOLD = 2
 
 # Time to thottle execution of move calculation in secs
-TIME_THROTTLE = 20
+TIME_THROTTLE = 15
 
 # Generations performed by HackerRank
 HR_GENS = 500
