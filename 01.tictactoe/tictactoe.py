@@ -68,6 +68,10 @@ class TicPlayer():
             self._first_move()
             return self._get_output()
 
+        # Defence
+        if self._has_threat():
+            return self._get_output()
+
         self.nextMove = self._find_next_move()
         return self._get_output()
 
