@@ -263,8 +263,7 @@ class TicPlayer():
             positions in the board for the provided player token"""
         trap_positions = []
 
-        for posIndex in self.board_items[_]:
-            pos = playMap[posIndex]
+        for pos in self.board_items[_]:
             win_promise = self._win_promise_count(pos, player)
             if win_promise > win_chances: # win win
                 trap_positions.append(pos)
