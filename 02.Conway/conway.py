@@ -7,22 +7,20 @@ W = 'w'
 B = 'b'
 _ = '-'
 DRAW = 'draw'
-
 BOUNDS = (29, 29) #row, col
-
 # The number of adjacent cells from which we consider
 # the group to be an island
 ISLAND_TREASHOLD = 2
-
 # How many good results to find before stopping simulations
-GOOD_RESULTS_THREASHOLD = 3
-
+GOOD_RESULTS_THREASHOLD = 8
+# On the final turns raise the threashold
+GOOD_RESULTS_LATE_THREASHOLD = 20
+# On how many final turns to raise the threashold
+FINAL_TURNS_TRIGGER = 5
 # Time to thottle execution of move calculation in secs
-TIME_THROTTLE = 15
-
+TIME_THROTTLE = 12
 # Generations to perform before giving up (HR does 500 but requires too much cpu)
-HR_GENS = 100
-
+HR_GENS = 200
 # Total cells we position
 HR_CELLS = 40
 
@@ -133,8 +131,11 @@ class Player():
         return self._get_optimal_attack_pos(prospect_attack_pos)
 
     def _get_optimal_attack_pos(self, prospect_attack_pos):
+        random.shuffle(prospect_attack_pos)
         pos_score = self._run_emulations(prospect_attack_pos)
         win_cases = filter(lambda score: score[2] == self.player, pos_score)
+        #print self.player, pos_score
+
         if not len(win_cases):
             # not good...
             if len(prospect_attack_pos):
@@ -167,14 +168,13 @@ class Player():
         # 4. B Count: Black player count
         start_time = time()
         good_threashold = GOOD_RESULTS_THREASHOLD
-        # Check if on last turn and opponent has the last play.
+        # Check if on last turn trigger...
         # In that case raise the good_threashold
-        if (self._get_player_count() == HR_CELLS-1
-            and self._get_opponent_count() == HR_CELLS-1):
+        if self._get_player_count() == HR_CELLS-FINAL_TURNS_TRIGGER:
             # opponent has the last word
-            good_threashold = 10
+            good_threashold = GOOD_RESULTS_LATE_THREASHOLD
 
-        for index, pos in enumerate(prospect_attack_pos):
+        for index, pos in reversed(list(enumerate(prospect_attack_pos))):
             game_sim = GolRules()
             game_sim.set_board(self.board)
             # make our prospect move
