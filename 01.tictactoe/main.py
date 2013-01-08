@@ -1,33 +1,6 @@
 #!/bin/python
 import tictactoe
-
-#Read the board now. The board is a 3x3 array filled with X, O or _.
-
-def make_play(pos_string, player, board):
-    print pos_string + " player:" + player
-    pos = pos_string.split(' ')
-    pos[0] = int(pos[0])
-    pos[1] = int(pos[1])
-    play_row = board[pos[0]]
-    colOne = player if pos[1] == 0 else play_row[0]
-    colTwo = player if pos[1] == 1 else play_row[1]
-    colThree = player if pos[1] == 2 else play_row[2]
-    board[pos[0]] = ( colOne + colTwo + colThree )
-    return board
-
-#board = [('___'), ('___'), ('___')]
-# board = [('__X'),
-#          ('_O_'),
-#          ('___')]
-# playerInst = tictactoe.TicPlayer('O', board)
-# print playerInst.get_next_move()
-
-# for i in xrange(0, 9):
-#     player = 'X' if i % 2 == 0 else 'O'
-#     playerInst = tictactoe.TicPlayer(player, board)
-#     board = make_play(playerInst.get_next_move(), player, board)
-#     print 'Round ' + str(i + 1) + ' Player: ' + player
-#     print board
+from time import time
 
 # _ _ _
 # _ _ _
@@ -36,6 +9,17 @@ def make_play(pos_string, player, board):
 # 0 1 2
 # 3 4 5
 # 6 7 8
+#
+#
+# 1 L3 W1 D2
+# 3 L1 W0 D4
+# 4 L2 W3 D5
+# 6 L0 W0 D9
+#
+
+# First submittion, static code results:
+# 25% win - 260games played - 65games won / 195 lost (!)
+
 
 # Positions map
 playMap = {
@@ -50,7 +34,35 @@ playMap = {
     8: (2,2)
 }
 
+game = tictactoe.TicTacToe()
 
-fiveTiles = [('100'), ('111'), ('010')]
+def run():
+    i = 0
+    while not game.is_finished():
+        i += 1
+        start_time = time()
+        player_one = tictactoe.TicPlayer('X', game.get_board())
+        x_move = player_one.get_next_move()
+
+        game.put_item(x_move, 'X')
+        x_time = time() - start_time
+
+        o_time = time()
+        player_two = tictactoe.TicPlayer('O', game.get_board())
+        if not game.is_finished():
+            o_move = player_two.get_next_move()
+            game.put_item(o_move, 'O')
+        print 'Round: %d Player X:%s (%f) -- O:%s (%f) :: Total Time: %f' %(i, x_move, x_time, o_move, time() - o_time, time() - start_time)
+
+        print game.get_board_str()
+
+def scenario(board, player):
+    player_one = tictactoe.TicPlayer(player, board)
+    x_move = player_one.get_next_move()
+    print x_move
 
 
+board = ['___', '_O_', '__X']
+
+run()
+#scenario(board, 'X')

@@ -1,9 +1,12 @@
 #!/bin/python
 import random
+import copy
 
 X = 'X'
 O = 'O'
 _ = '_'
+DRAW = 'DRAW'
+
 
 # Positions map
 playMap = {
@@ -18,6 +21,10 @@ playMap = {
     8: (2,2)
 }
 
+WIN_CONDITIONS = [[0,1,2], [0,3,6], [0,4,8],
+                  [1,4,7], [2,4,6], [2,5,8],
+                  [3,4,5], [6,7,8]]
+
 
 def nextMove(player,board):
     player = TicPlayer(player, board)
@@ -26,32 +33,121 @@ def nextMove(player,board):
 class TicPlayer():
 
     def __init__(self, player, board):
-        self.player = None
-        self.board = None
-        self.opponent = None
+
+        self.starting_pos_index = [0, 2, 6, 8]
 
         # board translated into 'playMap' indexes
         self.boardMap = {}
         # board reverse translated into 'playMap'
-        self.boardItems = {
+        self.board_items = {
             'X': [],
             'O': [],
             '_': []
         }
 
+        self.outcomes = {}
+        self.ar_outcomes = []
+
         self.nextMove = (0, 0)
 
         self.player = player
         self.opponent = X if self.player == O else O
-        self.board = board
+        self.board = []
+        for row, rows in enumerate(board):
+            row_items = []
+            for col, item in enumerate(rows):
+                row_items.append(item)
+                self.board_items[item].append((row, col))
+            self.board.append(row_items)
 
     # Initial entry point
     def get_next_move(self):
+        turn = self._get_turn_no()
+        # First move is scripted
+        if turn == 0:
+            self._first_move()
+            return self._get_output()
+
+        self.nextMove = self._find_next_move()
+        return self._get_output()
+
+    def _find_next_move(self):
+        """Try every possible outcome and determine
+            the best course"""
+
+        self._run_simulations()
+
+        pos_index = self._find_next_move_win()
+        if not pos_index == False:
+            return playMap[pos_index]
+
+        return self._find_optimal_move()
+
+    def _find_next_move_win(self):
+        for pos_index in self.outcomes:
+            if 1 in self.outcomes[pos_index][self.player]:
+                return pos_index
+        return False
+
+    def _find_optimal_move(self):
+        # convert the dict into an array containing tuples
+        # the tuples schema is:
+        # 0. Position    :: (0,0)
+        # 1. Win count   :: 1
+        # 2. Loose count :: 1
+        # 3. Draw count  :: 1
+        # Todo factor in the move_count that is available
+        for pos_index in self.outcomes:
+            outcome = self.outcomes[pos_index]
+            pos = playMap[pos_index]
+            wins = len(outcome[self.player])
+            looses = len(outcome[self.opponent])
+            draws = len(outcome[DRAW])
+            self.ar_outcomes.append((pos, wins, looses, draws))
+
+        self.ar_outcomes.sort(key=lambda tup:(tup[2], tup[1]*-1))
+
+        if len(self.ar_outcomes):
+            return self.ar_outcomes[0][0]
+        else:
+            #EOL
+            return self.board_items[_][0]
+
+    def _run_simulations(self):
+        for pos_index in playMap:
+            if not self._is_tile_free(playMap[pos_index]):
+                continue
+            game = TicTacToe(self.board)
+            self.outcomes[pos_index] = {
+                'X': [],
+                'O': [],
+                'DRAW': []
+            }
+
+            self.recurse_moves(pos_index, self.player, game, self.outcomes[pos_index], 0)
+
+    def recurse_moves(self, pos_index, player, game, outcome, move_count):
+        game.put_item(pos_index, player)
+        move_count += 1
+        if game.has_winner():
+            outcome[game.get_winner()].append(move_count)
+            return
+        next_player = X if player is O else O
+        for pos_index_next in playMap:
+            new_game = TicTacToe(game.get_board())
+            if not game.is_pos_free(pos_index_next):
+                continue
+            self.recurse_moves(pos_index_next, next_player, new_game, outcome, move_count)
+
+        if game.is_draw() and not game.has_winner():
+            outcome[DRAW].append(1)
+
+    def static_strategy(self):
         # Populate local vars
         mapIndex = 0
         for row, col, item in self._iter(self.board):
             self.boardMap[mapIndex] = item
-            self.boardItems[item].append(mapIndex)
+            self.board_items[item].append(mapIndex)
             mapIndex += 1
 
         if not self._has_win() and not self._has_threat():
@@ -73,11 +169,11 @@ class TicPlayer():
         # opponent has diagonal corners. In that case
         # We need to play on the cross and not diagonal
         if self.player == O and 1 == self._get_turn_no():
-            if (0 in self.boardItems[self.opponent]
-             and 8 in self.boardItems[self.opponent]
+            if (0 in self.board_items[self.opponent]
+             and 8 in self.board_items[self.opponent]
              or
-             2 in self.boardItems[self.opponent]
-             and 6 in self.boardItems[self.opponent]):
+             2 in self.board_items[self.opponent]
+             and 6 in self.board_items[self.opponent]):
                 self.nextMove = (0,1)
                 return True
 
@@ -118,9 +214,8 @@ class TicPlayer():
             if self._is_tile_free(self.nextMove):
                 return True
 
-        starting_pos_index = [0, 2, 6, 8]
         while True:
-            next_pos_index = starting_pos_index[random.randint(0, 3)]
+            next_pos_index = self.starting_pos_index[random.randint(0, 3)]
             # Do not use middle tile on first move
             next_pos_index = 5 if next_pos_index == 4 else next_pos_index
             self.nextMove = playMap[next_pos_index]
@@ -131,7 +226,7 @@ class TicPlayer():
     def _second_move(self):
         step = 4
         while True:
-            firstPos = self.boardItems[self.player][0]
+            firstPos = self.board_items[self.player][0]
             if firstPos > 4:
                 next_pos_index = firstPos - step
                 next_pos_index = 3 if next_pos_index == 4 else next_pos_index
@@ -164,7 +259,7 @@ class TicPlayer():
             positions in the board for the provided player token"""
         trap_positions = []
 
-        for posIndex in self.boardItems[_]:
+        for posIndex in self.board_items[_]:
             pos = playMap[posIndex]
             win_promise = self._win_promise_count(pos, player)
             if win_promise > win_chances: # win win
@@ -199,9 +294,9 @@ class TicPlayer():
 
     # Get a random pos from the ones that are free
     def _get_open_pos(self):
-        free_tiles_len = len(self.boardItems[_])
+        free_tiles_len = len(self.board_items[_])
         rand_index = random.randint(0, free_tiles_len-1)
-        posIndex = self.boardItems[_][rand_index]
+        posIndex = self.board_items[_][rand_index]
         return playMap[posIndex]
 
     def _get_turn_no(self):
@@ -307,6 +402,104 @@ class TicPlayer():
     def _get_output(self):
         return str(self.nextMove[0]) + " " + str(self.nextMove[1])
 
+
+
+
+class TicTacToe():
+    def __init__(self, board=None):
+        # board reverse translated into 'playMap'
+        self.board_items = {
+            'X': [],
+            'O': [],
+            '_': []
+        }
+        self.board = None
+        if board is None:
+            self.board = self._generate_board()
+        else:
+            self.set_board(board)
+
+    def _generate_board(self):
+        board = []
+        for i in xrange(3):
+            board.append([_] * 3)
+            self.board_items[_].append((i, 0))
+            self.board_items[_].append((i, 1))
+            self.board_items[_].append((i, 2))
+        return board
+
+    def set_board(self, board):
+        self.board = []
+        self.winner = None
+        for row, rows in enumerate(board):
+            row_items = []
+            for col, item in enumerate(rows):
+                row_items.append(item)
+                self.board_items[item].append((row, col))
+            self.board.append(row_items)
+
+    def put_item(self, pos, item):
+        p = self.get_pos_from_mixed(pos)
+        self.board[p[0]][p[1]] = item
+        self.board_items[item].append(p)
+        self.board_items[_].remove(p)
+
+    def has_winner(self):
+        x_count = len(self.board_items[X])
+        o_count = len(self.board_items[O])
+
+        if x_count <= 2 and o_count <=2: return False
+
+        for cond in WIN_CONDITIONS:
+            if (not self.get_item(cond[0]) == _ and self.get_item(cond[0]) == self.get_item(cond[1])
+                == self.get_item(cond[2])):
+                self.winner = self.get_item(cond[2])
+                return True
+        return False
+
+    def all_moves_done(self):
+        return len(self.board_items[_]) == 0
+
+    def is_draw(self):
+        return self.all_moves_done() and not self.has_winner()
+
+    def is_finished(self):
+        return self.is_draw() or self.has_winner()
+
+    def get_winner(self):
+        return self.winner
+
+    def get_item(self, pos):
+        p = self.get_pos_from_mixed(pos)
+        return self.board[p[0]][p[1]]
+
+    def is_pos_free(self, pos):
+        p = self.get_pos_from_mixed(pos)
+        return self.board[p[0]][p[1]] == _
+
+    def get_pos_from_mixed(self, pos):
+        if type(pos) is int:
+            return playMap[pos]
+        elif type(pos) is str:
+            p = pos.split(' ')
+            return (int(p[0]), int(p[1]))
+        else:
+            return pos
+
+    def get_board(self):
+        return copy.deepcopy(self.board)
+
+    def get_board_str(self):
+        board_str = ''
+        for row in self.board:
+            for item in row:
+                board_str += item
+            board_str += "\n"
+
+        return board_str
+
+
+
 if __name__=="__main__":
     player = raw_input()
 
@@ -316,4 +509,5 @@ if __name__=="__main__":
         board.append(raw_input())
 
     nextMove(player,board)
+
 
