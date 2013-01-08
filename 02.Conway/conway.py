@@ -1,5 +1,7 @@
 #!/bin/python
 import random
+import copy
+
 
 W = 'w'
 B = 'b'
@@ -94,7 +96,6 @@ class Player():
             self.board_items[item].append(pos)
 
     def get_next_move(self):
-        print self.player, self._get_player_count()
         # Main class entry point
         if self._get_player_count() < 7: #mutum pattern size
             return self._draw_pattern(PATTERNS['math_multum'])
@@ -119,6 +120,7 @@ class Player():
 
     def _get_optimal_attack_pos(self, prospect_attack_pos):
         pos_score = self._run_emulations(prospect_attack_pos)
+
         win_cases = filter(lambda score: score[2] == self.player, pos_score)
         if not len(win_cases):
             # not good...
@@ -127,7 +129,7 @@ class Player():
         # win cases by generations count asc
         # and by living cells desc
         p = 3 if self.player == W else 4
-        win_cases.sort(key=lambda tup:(tup[0], tup[p]*-1))
+        win_cases.sort(key=lambda tup:(tup[1], tup[p]*-1))
         return win_cases[0][0] # Best case position
 
     def _run_emulations(self, prospect_attack_pos):
@@ -143,10 +145,9 @@ class Player():
         # 4. B Count: Black player count
         for index, pos in enumerate(prospect_attack_pos):
             game_sim = GolRules()
-            board = self.board
+            game_sim.set_board(self.board)
             # make our prospect move
-            board[pos[0]][pos[1]] = self.player
-            game_sim.set_board(board)
+            game_sim.put_cell(pos, self.player)
 
             for i in xrange(HR_GENS):
                 game_sim.generate()
@@ -189,14 +190,21 @@ class Player():
     def _get_adjacent_cells(self, pos):
         cells = []
         cells.append((pos[0]-1, pos[1]-1))
-        cells.append((pos[0]-1))
+        cells.append((pos[0]-1, pos[1]))
         cells.append((pos[0]-1, pos[1]+1))
         cells.append((pos[0], pos[1]-1))
         cells.append((pos[0], pos[1]+1))
         cells.append((pos[0]+1, pos[1]-1))
         cells.append((pos[0]+1, pos[1]))
         cells.append((pos[0]+1, pos[1]+1))
-        return cells
+        #eliminate out of bounds cells
+        clear_cells = []
+        for cell in cells:
+            if cell[0] < 0 or cell[0] > BOUNDS[0]: continue
+            if cell[1] < 0 or cell[1] > BOUNDS[1]: continue
+            clear_cells.append(cell)
+
+        return clear_cells
 
     def _get_adjacent_dead_cells(self, cells):
         dead_cells = []
@@ -330,22 +338,27 @@ class GolRules():
         # bounds is a 2 value tuple, rows / cols
         self.bounds = bounds
         # board is an array of arrays representing the board
-        self.board = board
-        if self.board is None:
-            self.board = []
-            for i in xrange(bounds[0]):
-                self.board.append([_] * bounds[1])
+        if board is None:
+            self.board = self._generate_board()
+        else:
+            self.set_board(board)
 
         self.board_items = {
             'w': [],
             'b': [],
             '-': []
         }
+    def _generate_board(self):
+        board = []
+        for i in xrange(self.bounds[0]):
+            board.append([_] * self.bounds[1])
+        return board
+
     def set_board(self, board):
-        self.board = board
+        self.board = copy.deepcopy(board)
 
     def get_board(self):
-        return self.board
+        return copy.deepcopy(self.board)
 
     def get_board_str(self):
         board_str = ''
@@ -362,7 +375,7 @@ class GolRules():
     def generate(self):
         """generate 1 step and returns the new board"""
 
-        next_board = [[_] * self.bounds[1]] * self.bounds[0]
+        next_board = self._generate_board()
         board_items = {
             'w': [],
             'b': [],
@@ -370,8 +383,9 @@ class GolRules():
         }
 
         for pos, item in self.next():
-            next_board[pos[0]][pos[1]] = self._next_state(pos, item)
-            board_items[next_board[pos[0]][pos[1]]].append(pos)
+            next_state = self._next_state(pos, item)
+            next_board[pos[0]][pos[1]] = next_state
+            board_items[next_state].append(pos)
 
         self.board = next_board
         self.board_items = board_items
@@ -412,7 +426,7 @@ class GolRules():
         neighborhood[self.get_item(pos, 1)].append(pos)
         neighborhood[self.get_item(pos, 1, 1)].append(pos)
 
-        total_near_items = neighborhood[W] + neighborhood[B]
+        total_near_items = len(neighborhood[W]) + len(neighborhood[B])
 
         # certain death rule
         if total_near_items > 3 or total_near_items < 2:
