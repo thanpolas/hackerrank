@@ -82,8 +82,13 @@ class Player():
     def __init__(self, player, board):
         self.player = player
         self.opponent = B if player == W else W
+        self.board = []
+        for rows in board:
+            row_items = []
+            for item in rows:
+                row_items.append(item)
+            self.board.append(row_items)
 
-        self.board = board
         self.board_items = {
             'w': [],
             'b': [],
@@ -124,7 +129,17 @@ class Player():
         win_cases = filter(lambda score: score[2] == self.player, pos_score)
         if not len(win_cases):
             # not good...
-            return prospect_attack_pos[0]
+            if len(prospect_attack_pos):
+                return prospect_attack_pos[0]
+            # not good at all, only single cells exist in grid
+            for opponent_pos in self.board_items[self.opponent]:
+                empty_cells = self._get_adjacent_dead_cells(opponent_pos)
+                if len(empty_cells):
+                    return empty_cells[0]
+            # all failed... wtf
+            return self._get_random_pos()
+
+
         # Define the tuple key our player is on and sort the
         # win cases by generations count asc
         # and by living cells desc
@@ -256,14 +271,24 @@ class Player():
                     pattern_offset_pos = (start_player_pos[0] - row, start_player_pos[1] - col)
 
                 if pattern_item_count > self._get_player_count():
-                    return (pattern_offset_pos[0] + row, pattern_offset_pos[1] + col)
+                    pos = (pattern_offset_pos[0] + row, pattern_offset_pos[1] + col)
+                    if self._is_pos_free(pos):
+                        return pos
+                    # cell occupied, move to next one...
+
 
     def _draw_pattern_first_move(self):
         # first play, check opponent's move
         if self._get_opponent_count() == 0:
             # We have the initiative, statically select center
             # to bottom-right
-            return (16, 16)
+            col = 16
+            while True:
+                pos = (16, col)
+                if self._is_pos_free(pos):
+                    return pos
+                col += 1
+
         # get opponents quadrant
         op_quad = self._get_pos_quadrant(self.board_items[self.opponent][0])
         # Go to the opposite quad
@@ -371,6 +396,7 @@ class GolRules():
 
     def put_cell(self, pos, item):
         self.board[pos[0]][pos[1]] = item
+
 
     def generate(self):
         """generate 1 step and returns the new board"""
