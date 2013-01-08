@@ -14,11 +14,17 @@ BOUNDS = (29, 29) #row, col
 # the group to be an island
 ISLAND_TREASHOLD = 2
 
+# How many good results to find before stopping simulations
+GOOD_RESULTS_THREASHOLD = 3
+
 # Time to thottle execution of move calculation in secs
 TIME_THROTTLE = 15
 
-# Generations performed by HackerRank
+# Generations to perform before giving up (HR does 500 but requires too much cpu)
 HR_GENS = 100
+
+# Total cells we position
+HR_CELLS = 40
 
 PATTERNS = {
     # Popular GOL Patterns
@@ -98,14 +104,12 @@ class Player():
             '-': []
         }
 
-        self._next_pos = None
-
         for pos, item in self.next():
             self.board_items[item].append(pos)
 
     def get_next_move(self):
         # Main class entry point
-        if self._get_player_count() < 7: #mutum pattern size
+        if self._get_player_count() < 7: #multum pattern size
             next_move = self._draw_pattern(PATTERNS['math_multum'])
             if next_move is not None:
                 return next_move # otherwise attack
@@ -130,17 +134,15 @@ class Player():
 
     def _get_optimal_attack_pos(self, prospect_attack_pos):
         pos_score = self._run_emulations(prospect_attack_pos)
-
         win_cases = filter(lambda score: score[2] == self.player, pos_score)
         if not len(win_cases):
             # not good...
             if len(prospect_attack_pos):
                 return prospect_attack_pos[0]
             # not good at all, only single cells exist in grid
-            for opponent_pos in self.board_items[self.opponent]:
-                empty_cells = self._get_adjacent_dead_cells(opponent_pos)
-                if len(empty_cells):
-                    return empty_cells[0]
+            empty_cells = self._get_adjacent_dead_cells(self.board_items[self.opponent])
+            if len(empty_cells):
+                return empty_cells[0]
             # all failed... wtf
             return self._get_random_pos()
 
@@ -164,6 +166,14 @@ class Player():
         # 3. W Count: White player count
         # 4. B Count: Black player count
         start_time = time()
+        good_threashold = GOOD_RESULTS_THREASHOLD
+        # Check if on last turn and opponent has the last play.
+        # In that case raise the good_threashold
+        if (self._get_player_count() == HR_CELLS-1
+            and self._get_opponent_count() == HR_CELLS-1):
+            # opponent has the last word
+            good_threashold = 10
+
         for index, pos in enumerate(prospect_attack_pos):
             game_sim = GolRules()
             game_sim.set_board(self.board)
@@ -179,13 +189,16 @@ class Player():
             game_score = (pos, i, game_sim.get_winner(), game_sim.get_count(W), game_sim.get_count(B))
             pos_score.append(game_score)
             elapsed = time() - start_time
-            #print "Time: %f Iters: %d player: %s " % (elapsed, i, self.player), game_score, game_sim.game_ended()
+            # print "Time: %f Iters: %d player: %s " % (elapsed, i, self.player), game_score, game_sim.game_ended()
 
             #print game_sim.count_history
 
             # stop sims if we find a satisfactory win case
-            if game_score[2] == self.player and i < (HR_GENS - 10):
+            good_cases = filter(lambda score: score[1]<(HR_GENS-10) and score[2]==self.player, pos_score)
+
+            if len(good_cases) >= good_threashold:
                 return pos_score
+
             if elapsed > TIME_THROTTLE:
                 return pos_score
 
@@ -405,7 +418,13 @@ class GolRules():
         return board
 
     def set_board(self, board):
-        self.board = copy.deepcopy(board)
+        self.board = []
+        for rows in board:
+            row_items = []
+            for item in rows:
+                row_items.append(item)
+            self.board.append(row_items)
+
 
     def get_board(self):
         return copy.deepcopy(self.board)
