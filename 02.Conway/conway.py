@@ -106,7 +106,9 @@ class Player():
     def get_next_move(self):
         # Main class entry point
         if self._get_player_count() < 7: #mutum pattern size
-            return self._draw_pattern(PATTERNS['math_multum'])
+            next_move = self._draw_pattern(PATTERNS['math_multum'])
+            if next_move is not None:
+                return next_move # otherwise attack
 
         # Start attacking
         return self._attack()

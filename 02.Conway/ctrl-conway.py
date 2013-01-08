@@ -1,56 +1,25 @@
 import conway
-import time
+from time import time
 
 game = conway.GolRules()
 
 def run():
     for i in xrange(40):
-        print 'Round:', i
+        start_time = time()
         player_one = conway.Player('w', game.get_board())
-        play = player_one.get_next_move()
-        print 'Player w play:', play
-        game.put_cell(play, 'w')
+        w_play = player_one.get_next_move()
+        game.put_cell(w_play, 'w')
 
         player_two = conway.Player('b', game.get_board())
-        play = player_two.get_next_move()
-        print 'Player b play:', play
-        game.put_cell(play, 'b')
+        b_play = player_two.get_next_move()
+        game.put_cell(b_play, 'b')
+        print 'Round: %d Player A:%s -- B:%s time: %f' %(i, w_play, b_play, time() - start_time)
+
 
     print game.get_board_str()
 
 run()
 
-# class Beta():
-#     def __init__(self, cells):
-#         self.cells = cells
-#     def go(self):
-#         for i in xrange(3):
-#             gamma = Gamma(self.cells[:])
-#             gamma.set_cell(i, 'x')
-#             print "Iter #", i, self.cells
-#     def get_cells(self):
-#         return self.cells
-
-# class Gamma():
-#     def __init__(self, cells):
-#         self.cells = cells
-#     def set_cell(self, pos, cell):
-#         self.cells[pos][0] = cell
-
-# beta = Beta([['_', '_', '_'], ['_', '_', 'O'], ['_', 'X', '_']])
-
-# beta.go()
-# cells = beta.get_cells()
-# cells[0][2] = 'Z'
-# print beta.get_cells()
-
-# results = [((4, 4), 85, 'w', 232, 0), ((4, 5), 53, 'w', 87, 0), ((4, 6), 85, 'w', 232, 0), ((5, 4), 85, 'w', 232, 0), ((6, 5), 85, 'w', 232, 0), ((6, 6), 85, 'w', 232, 0), ((4, 5), 53, 'w', 87, 0), ((4, 6), 85, 'w', 232, 0), ((4, 7), 499, 'b', 58, 87), ((6, 5), 85, 'w', 232, 0), ((6, 6), 85, 'w', 232, 0), ((4, 6), 85, 'w', 232, 0), ((4, 7), 499, 'b', 58, 87), ((4, 8), 499, 'b', 58, 87), ((5, 8), 499, 'b', 58, 87), ((6, 6), 85, 'w', 232, 0), ((6, 8), 499, 'b', 58, 87), ((5, 8), 499, 'b', 58, 87), ((6, 6), 85, 'w', 232, 0), ((6, 8), 499, 'b', 58, 87), ((7, 6), 1, 'w', 29, 0)]
-
-# win_cases = filter(lambda score: score[2] == 'w', results)
-# print len(results), len(win_cases)
-
-# win_cases.sort(key=lambda tup:(tup[1], tup[3]*-1))
-# print win_cases
 
 mock = []
 
@@ -58,11 +27,11 @@ mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
-mock.append('-----w-----------------------')
-mock.append('-----bbb---------------------')
-mock.append('----b--b---------------------')
-mock.append('---b-------------------------')
-mock.append('--b--------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
+mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
@@ -71,9 +40,9 @@ mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('----------------www----------')
-mock.append('---------------w--w----------')
+mock.append('---------------w--w-b--------')
 mock.append('--------------w--------------')
-mock.append('-------------w---------------')
+mock.append('-------------b---------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
@@ -81,13 +50,13 @@ mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
 mock.append('-----------------------------')
-mock.append('-----------------------------')
-mock.append('-----------------------------')
+mock.append('----------------------------b')
+mock.append('--------------------------bbb')
+
 
 
 # game = conway.GolRules(mock)
-
-# player_one = conway.Player('b', game.get_board())
+# player_one = conway.Player('w', game.get_board())
 # play = player_one.get_next_move()
-# print 'Player b play:', play
+# print 'Player w play:', play
 
