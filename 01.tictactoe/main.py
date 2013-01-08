@@ -43,7 +43,6 @@ def run():
         start_time = time()
         player_one = tictactoe.TicPlayer('X', game.get_board())
         x_move = player_one.get_next_move()
-
         game.put_item(x_move, 'X')
         x_time = time() - start_time
 

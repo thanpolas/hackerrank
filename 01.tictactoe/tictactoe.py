@@ -53,31 +53,34 @@ class TicPlayer():
         self.player = player
         self.opponent = X if self.player == O else O
         self.board = []
+        item_count = 0
         for row, rows in enumerate(board):
             row_items = []
             for col, item in enumerate(rows):
                 row_items.append(item)
-                self.board_items[item].append((row, col))
+                self.board_items[item].append(item_count)
+                item_count += 1
             self.board.append(row_items)
 
     # Initial entry point
     def get_next_move(self):
+
+        return self.static_strategy()
+
+        #return self.sim_strategy()
+
+    def sim_strategy(self):
+        """Try every possible outcome and determine
+            the best course"""
+
         turn = self._get_turn_no()
         # First move is scripted
         if turn == 0:
             self._first_move()
             return self._get_output()
-
         # Defence
         if self._has_threat():
             return self._get_output()
-
-        self.nextMove = self._find_next_move()
-        return self._get_output()
-
-    def _find_next_move(self):
-        """Try every possible outcome and determine
-            the best course"""
 
         self._run_simulations()
 
@@ -85,7 +88,9 @@ class TicPlayer():
         if not pos_index == False:
             return playMap[pos_index]
 
-        return self._find_optimal_move()
+        self.nextMove = self._find_optimal_move()
+        return self._get_output()
+
 
     def _find_next_move_win(self):
         for pos_index in self.outcomes:
@@ -115,7 +120,7 @@ class TicPlayer():
             return self.ar_outcomes[0][0]
         else:
             #EOL
-            return self.board_items[_][0]
+            return playMap[self.board_items[_][0]]
 
     def _run_simulations(self):
         for pos_index in playMap:
@@ -147,12 +152,6 @@ class TicPlayer():
             outcome[DRAW].append(1)
 
     def static_strategy(self):
-        # Populate local vars
-        mapIndex = 0
-        for row, col, item in self._iter(self.board):
-            self.boardMap[mapIndex] = item
-            self.board_items[item].append(mapIndex)
-            mapIndex += 1
 
         if not self._has_win() and not self._has_threat():
             self._next_move()
@@ -252,7 +251,9 @@ class TicPlayer():
         return True
 
     def set_board_tile(self, pos, player):
+        #print pos_index
         play_row = self.board[pos[0]]
+        #pos = playMap[pos_index]
         colOne = player if pos[1] == 0 else play_row[0]
         colTwo = player if pos[1] == 1 else play_row[1]
         colThree = player if pos[1] == 2 else play_row[2]
@@ -270,8 +271,9 @@ class TicPlayer():
 
         return trap_positions
 
-    def _win_promise_count(self, pos, player):
+    def _win_promise_count(self, pos_index, player):
         """return the winnning chances for the provided tile"""
+        pos = playMap[pos_index]
         # temporarily put the selected position in
         # the board
         self.set_board_tile(pos, player)
@@ -316,6 +318,7 @@ class TicPlayer():
         """return the winning position for the position
             provided. We assume there is one more token
             of the same type in a winning axis"""
+        print pos
         self.set_board_tile(pos, player)
         if not self._check_all(player):
             #bogus result
