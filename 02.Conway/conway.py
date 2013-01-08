@@ -1,7 +1,7 @@
 #!/bin/python
 import random
 import copy
-
+from time import time
 
 W = 'w'
 B = 'b'
@@ -13,6 +13,9 @@ BOUNDS = (29, 29) #row, col
 # The number of adjacent cells from which we consider
 # the group to be an island
 ISLAND_TREASHOLD = 2
+
+# Time to thottle execution of move calculation in secs
+TIME_THROTTLE = 20
 
 # Generations performed by HackerRank
 HR_GENS = 500
@@ -158,6 +161,7 @@ class Player():
         # 2. Winner: W, B or DRAW
         # 3. W Count: White player count
         # 4. B Count: Black player count
+        start_time = time()
         for index, pos in enumerate(prospect_attack_pos):
             game_sim = GolRules()
             game_sim.set_board(self.board)
@@ -171,6 +175,14 @@ class Player():
 
             game_score = (pos, i, game_sim.get_winner(), game_sim.get_count(W), game_sim.get_count(B))
             pos_score.append(game_score)
+            elapsed = time() - start_time
+            #print "Time: %f Iters: %d player: %s winner: %s" % (elapsed, i, self.player, game_score[2])
+            # stop sims if we find a satisfactory win case
+            if game_score[2] == self.player and i < (HR_GENS - 10):
+                return pos_score
+            if elapsed > TIME_THROTTLE:
+                return pos_score
+
         return pos_score
 
     def _get_opponent_islands(self):
