@@ -188,12 +188,12 @@ class TicPlayer():
         win_chance_pos = self._find_traps(self.player, 0)
         #print "traps:", trap_pos
         #print "our win:", win_chance_pos
-        for pos in win_chance_pos:
-            force_play = self._get_winning_pos(pos, self.player)
+        for pos_index in win_chance_pos:
+            force_play = self._get_winning_pos(pos_index, self.player)
             #print "For:", pos, " force:", force_play
             if force_play not in trap_pos:
                 #print pos, " is not in trap"
-                self.nextMove = pos
+                self.nextMove = pos_index
                 return True
 
         # This is a bogus outcome
@@ -264,10 +264,10 @@ class TicPlayer():
             positions in the board for the provided player token"""
         trap_positions = []
 
-        for pos in self.board_items[_]:
-            win_promise = self._win_promise_count(pos, player)
+        for pos_index in self.board_items[_]:
+            win_promise = self._win_promise_count(pos_index, player)
             if win_promise > win_chances: # win win
-                trap_positions.append(pos)
+                trap_positions.append(pos_index)
 
         return trap_positions
 
@@ -314,17 +314,16 @@ class TicPlayer():
     def _is_tile_free(self, pos):
         return self._get_item(pos) == _
 
-    def _get_winning_pos(self, pos, player):
+    def _get_winning_pos(self, pos_index, player):
         """return the winning position for the position
             provided. We assume there is one more token
             of the same type in a winning axis"""
-        print pos
-        self.set_board_tile(pos, player)
+        self.set_board_tile(playMap[pos_index], player)
         if not self._check_all(player):
             #bogus result
-            self.set_board_tile(pos, _)
+            self.set_board_tile(playMap[pos_index], _)
             return self._get_open_pos()
-        self.set_board_tile(pos, _)
+        self.set_board_tile(playMap[pos_index], _)
         return self.nextMove
 
     def _check_all(self, item_target):
@@ -406,6 +405,8 @@ class TicPlayer():
         return self.board[pos[0]][pos[1]]
 
     def _get_output(self):
+        if type(self.nextMove) is int:
+            self.nextMove = playMap[self.nextMove]
         return str(self.nextMove[0]) + " " + str(self.nextMove[1])
 
 
