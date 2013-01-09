@@ -64,7 +64,7 @@ def scenario(board, player):
     print x_move
 
 
-board = ['___', '_O_', '__X']
+board = ['__X', '_X_', 'O__']
 
-run()
-#scenario(board, 'X')
+#run()
+scenario(board, 'O')

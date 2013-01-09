@@ -152,7 +152,6 @@ class TicPlayer():
             outcome[DRAW].append(1)
 
     def static_strategy(self):
-
         if not self._has_win() and not self._has_threat():
             self._next_move()
 
@@ -179,7 +178,6 @@ class TicPlayer():
              and 6 in self.board_items[self.opponent]):
                 self.nextMove = (0,1)
                 return True
-
         # Check for possible traps
         trap_pos = self._find_traps(self.opponent)
         if len(trap_pos) == 0:
@@ -215,10 +213,6 @@ class TicPlayer():
             # First move for O is center
             self.nextMove = (1,1)
             if self._is_tile_free(self.nextMove):
-                return True
-            else:
-                #play on the cross
-                self.nextMove = (0,1)
                 return True
 
         while True:
@@ -272,7 +266,6 @@ class TicPlayer():
             win_promise = self._win_promise_count(pos_index, player)
             if win_promise > win_chances: # win win
                 trap_positions.append(pos_index)
-
         return trap_positions
 
     def _win_promise_count(self, pos_index, player):
@@ -283,12 +276,14 @@ class TicPlayer():
         self.set_board_tile(pos, player)
         # Check for a double promissing win
         win_promise = 0
-        if self._check_horizontal(pos[0], pos[1], player):
-            win_promise += 1
-        if self._check_vertical(pos[0], pos[1], player):
-            win_promise += 1
-        if self._check_diagonal(pos[0], pos[1], player):
-            win_promise += 1
+        for pos_index in self.board_items[_]:
+            pos_test = playMap[pos_index]
+            if self._check_horizontal(pos_test[0], pos_test[1], player):
+                win_promise += 1
+            if self._check_vertical(pos_test[0], pos_test[1], player):
+                win_promise += 1
+            if self._check_diagonal(pos_test[0], pos_test[1], player):
+                win_promise += 1
 
         # Reset the tile
         self.set_board_tile(pos, _)
@@ -331,6 +326,8 @@ class TicPlayer():
         return self.nextMove
 
     def _check_all(self, item_target):
+        """Checks if there are winning conditions on any tile
+            for the provided player (item_target)"""
         for row, col, item in self._iter(self.board):
             #print "examining:", row, col, item, item_target
             if item == item_target:
@@ -340,6 +337,7 @@ class TicPlayer():
                     return True
                 if self._check_diagonal(row, col, item):
                     return True
+
         return False
 
 
@@ -352,7 +350,7 @@ class TicPlayer():
         tiles.remove(col)
         posOne = (row, tiles[0])
         posTwo = (row, tiles[1])
-        return self._find_pair(row, col, item, posOne, posTwo)
+        return self._find_pair(item, posOne, posTwo)
 
     def _check_vertical(self, row, col, item):
         """Check if two of the items exist in the vertical axis
@@ -363,7 +361,7 @@ class TicPlayer():
         tiles.remove(row)
         posOne = (tiles[0], col)
         posTwo = (tiles[1], col)
-        return self._find_pair(row, col, item, posOne, posTwo)
+        return self._find_pair(item, posOne, posTwo)
 
     def _check_diagonal(self, row, col, item):
         """Check if two of the items exist in the diagonal axis
@@ -378,11 +376,11 @@ class TicPlayer():
         if pos == (1,1):
             posOne = (0,0)
             posTwo = (2,2)
-            if self._find_pair(row, col, item, posOne, posTwo):
+            if self._find_pair(item, posOne, posTwo):
                 return True
             posOne = (0,2)
             posTwo = (2,0)
-            if self._find_pair(row, col, item, posOne, posTwo):
+            if self._find_pair(item, posOne, posTwo):
                 return True
             return False
 
@@ -392,18 +390,10 @@ class TicPlayer():
             posTwo = (2,0) if col == 2 else (2,2)
         else:
             posTwo = (0,0) if col == 2 else (0,2)
-        return self._find_pair(row, col, item, posOne, posTwo)
+        return self._find_pair(item, posOne, posTwo)
 
-    def _find_pair(self, row, col, item, posOne, posTwo):
-        if self._get_item(posOne) != _ and self._get_item(posTwo) != _:
-            return False
-        if self._get_item(posOne) == item:
-            self.nextMove = posTwo
-            return True
-        if self._get_item(posTwo) == item:
-            self.nextMove = posOne
-            return True
-        return False
+    def _find_pair(self, item, posOne, posTwo):
+        return self._get_item(posOne) == self._get_item(posTwo) == item
 
     def _get_item(self, pos):
         return self.board[pos[0]][pos[1]]
