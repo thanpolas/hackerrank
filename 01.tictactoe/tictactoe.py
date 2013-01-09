@@ -20,6 +20,7 @@ playMap = {
     7: (2,1),
     8: (2,2)
 }
+playMapAr = [(0,0),(0,1),(0,2),(1,0),(1,1),(1,2),(2,0),(2,1),(2,2)]
 
 WIN_CONDITIONS = [[0,1,2], [0,3,6], [0,4,8],
                   [1,4,7], [2,4,6], [2,5,8],
@@ -180,6 +181,7 @@ class TicPlayer():
                 return True
         # Check for possible traps
         trap_pos = self._find_traps(self.opponent)
+
         if len(trap_pos) == 0:
             return False
         # There are possible traps, force play out of them
@@ -249,23 +251,25 @@ class TicPlayer():
         return True
 
     def set_board_tile(self, pos, player):
-        #print pos_index
-        play_row = self.board[pos[0]]
-        #pos = playMap[pos_index]
-        colOne = player if pos[1] == 0 else play_row[0]
-        colTwo = player if pos[1] == 1 else play_row[1]
-        colThree = player if pos[1] == 2 else play_row[2]
-        self.board[pos[0]] = ( colOne + colTwo + colThree )
+        replaced_item = self._get_item(pos)
+        pos_index = playMapAr.index(pos)
+        self.board[pos[0]][pos[1]] = player
+        self.board_items[replaced_item].remove(pos_index)
+        self.board_items[player].append(pos_index)
 
     def _find_traps(self, player, win_chances=1):
         """Returns an array with all the possible trap
             positions in the board for the provided player token"""
         trap_positions = []
 
-        for pos_index in self.board_items[_]:
+        current_empty_tiles = copy.copy(self.board_items[_])
+        for pos_index in current_empty_tiles:
             win_promise = self._win_promise_count(pos_index, player)
+            #print 'examined:', player, pos_index, win_promise
+
             if win_promise > win_chances: # win win
                 trap_positions.append(pos_index)
+        #print player, trap_positions
         return trap_positions
 
     def _win_promise_count(self, pos_index, player):
@@ -276,14 +280,24 @@ class TicPlayer():
         self.set_board_tile(pos, player)
         # Check for a double promissing win
         win_promise = 0
-        for pos_index in self.board_items[_]:
-            pos_test = playMap[pos_index]
-            if self._check_horizontal(pos_test[0], pos_test[1], player):
-                win_promise += 1
-            if self._check_vertical(pos_test[0], pos_test[1], player):
-                win_promise += 1
-            if self._check_diagonal(pos_test[0], pos_test[1], player):
-                win_promise += 1
+        for pos_test_index in self.board_items[_]:
+            #print "Testing:", pos_test_index, pos_index, player, self.board
+            for cond in WIN_CONDITIONS:
+                if pos_test_index not in cond:
+                    continue
+                match = []
+                no_match = []
+                for pos_cond_index in cond:
+                    pos_cond = playMap[pos_cond_index]
+                    if self._get_item(pos_cond) == player:
+                        match.append(1)
+                    else:
+                        no_match.append(self._get_item(pos_cond))
+
+                if len(match) == 2 and no_match[0] == _:
+                    win_promise += 1
+
+                #if pos_index == 1: print cond, match, no_match, win_promise
 
         # Reset the tile
         self.set_board_tile(pos, _)
@@ -328,72 +342,22 @@ class TicPlayer():
     def _check_all(self, item_target):
         """Checks if there are winning conditions on any tile
             for the provided player (item_target)"""
-        for row, col, item in self._iter(self.board):
-            #print "examining:", row, col, item, item_target
-            if item == item_target:
-                if self._check_horizontal(row, col, item):
-                    return True
-                if self._check_vertical(row, col, item):
-                    return True
-                if self._check_diagonal(row, col, item):
-                    return True
 
+        for cond in WIN_CONDITIONS:
+            match = []
+            no_match = []
+            for pos_index in cond:
+                if self._get_item(playMap[pos_index]) == item_target:
+                    match.append(1)
+                else:
+                    no_match.append(self._get_item(playMap[pos_index]))
+                    self.nextMove = playMap[pos_index]
+
+            if len(match) == 2 and no_match[0] == _:
+                return True
+
+        self.nextMove = (0,0)
         return False
-
-
-    def _check_horizontal(self, row, col, item):
-        """Check if two of the items exist in the horizontal axis
-            Returns boolean true if two are found and the third is
-            free to use. Stores open coords in self.nextMove
-        """
-        tiles = [0, 1, 2]
-        tiles.remove(col)
-        posOne = (row, tiles[0])
-        posTwo = (row, tiles[1])
-        return self._find_pair(item, posOne, posTwo)
-
-    def _check_vertical(self, row, col, item):
-        """Check if two of the items exist in the vertical axis
-            Returns boolean true if two are found and the third is
-            free to use. Stores open coords in self.nextMove
-        """
-        tiles = [0, 1, 2]
-        tiles.remove(row)
-        posOne = (tiles[0], col)
-        posTwo = (tiles[1], col)
-        return self._find_pair(item, posOne, posTwo)
-
-    def _check_diagonal(self, row, col, item):
-        """Check if two of the items exist in the diagonal axis
-            Returns boolean true if two are found and the third is
-            free to use. Stores open coords in self.nextMove
-        """
-        # exclude positions with no diagonal option
-        pos = (row, col)
-        if pos in [(0,1), (1,0), (1,2), (2, 1)]:
-            return False
-        # handle case where item is in the middle of the matrix
-        if pos == (1,1):
-            posOne = (0,0)
-            posTwo = (2,2)
-            if self._find_pair(item, posOne, posTwo):
-                return True
-            posOne = (0,2)
-            posTwo = (2,0)
-            if self._find_pair(item, posOne, posTwo):
-                return True
-            return False
-
-        # One of the remaining four corners
-        posOne = (1,1)
-        if row == 0:
-            posTwo = (2,0) if col == 2 else (2,2)
-        else:
-            posTwo = (0,0) if col == 2 else (0,2)
-        return self._find_pair(item, posOne, posTwo)
-
-    def _find_pair(self, item, posOne, posTwo):
-        return self._get_item(posOne) == self._get_item(posTwo) == item
 
     def _get_item(self, pos):
         return self.board[pos[0]][pos[1]]
