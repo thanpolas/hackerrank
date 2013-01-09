@@ -216,6 +216,10 @@ class TicPlayer():
             self.nextMove = (1,1)
             if self._is_tile_free(self.nextMove):
                 return True
+            else:
+                #play on the cross
+                self.nextMove = (0,1)
+                return True
 
         while True:
             next_pos_index = self.starting_pos_index[random.randint(0, 3)]

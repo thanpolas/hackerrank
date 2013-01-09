@@ -19,7 +19,10 @@ from time import time
 
 # First submittion, static code results:
 # 25% win - 260games played - 65games won / 195 lost (!)
-
+# Simulation trial resulted in:
+# 15.7% - 134games - 21won / 113lost
+# Scripted rolled back:
+# 20.5% - 132games - 27w - 101l
 
 # Positions map
 playMap = {
